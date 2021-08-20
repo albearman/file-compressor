@@ -35,6 +35,10 @@ $fileCompressor = new Compressor(
     $iLovePDFProjectId . ':' . $iLovePDFProjectKey
 );
 
+if (!is_uploaded_file($_FILES['file']['name'])) {
+    jsonRequest(['data' => 'File not upload'], 500);
+}
+
 $uploadDir = __DIR__ . '/uploads/';
 $fileName = basename($_FILES['file']['name']);
 
