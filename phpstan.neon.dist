@@ -1,0 +1,6 @@
+parameters:
+  level: 4
+  tmpDir: var/tmp
+  paths:
+  		- src
+  		- tests

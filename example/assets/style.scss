@@ -1,0 +1,50 @@
+.page {
+  height: 100vh;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.container {
+  width: 800px;
+  margin: 0 auto;
+  text-align: center;
+
+  .form {
+    width: 300px;
+    margin: 0 auto;
+    border: 1px solid #ddd;
+    padding: 20px;
+    border-radius: 5px;
+
+    .block:not(:last-child) {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 10px 15px;
+      border-radius: 5px;
+      border: 1px solid #666666;
+      cursor: pointer;
+
+      &.test-img {
+        color: #fff;
+        background-color: #1c7430;
+        border-color: #145422;
+      }
+
+      &.test-pdf {
+        color: #fff;
+        background-color: #be5001;
+        border-color: #8a3500;
+      }
+    }
+  }
+}

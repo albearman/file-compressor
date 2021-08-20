@@ -1,0 +1,33 @@
+{
+  "name": "bearman/file-compressor",
+  "description": "Component for file compression with tinypng and ilovepdf services",
+  "type": "library",
+  "license": "GPLv3",
+  "autoload": {
+    "psr-4": {
+      "Bearman\\FileCompressor\\": "src/"
+    }
+  },
+  "authors": [
+    {
+      "name": "Alexey <Alex Bearman> Medvedev",
+      "email": "medvedevav@itzavr.ru"
+    }
+  ],
+  "require": {
+    "php": "^7.3",
+    "tinify/tinify": "^1.5",
+    "ilovepdf/ilovepdf-php": "^1.1"
+  },
+  "require-dev": {
+    "friendsofphp/php-cs-fixer": "^3.0",
+    "phpstan/phpstan": "^0.12.94",
+    "phpunit/phpunit": "^9.5"
+  },
+  "scripts": {
+    "php-cs-fixer": "php-cs-fixer fix -v",
+    "pre-commit-check": [
+      "@php-cs-fixer"
+    ]
+  }
+}
