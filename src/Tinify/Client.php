@@ -17,10 +17,10 @@ use Tinify\Tinify;
 class Client
 {
     public const API_CRAZY_ENDPOINT = 'https://tinypng.com/web';
-    const API_ENDPOINT = "https://api.tinify.com";
+    public const API_ENDPOINT = "https://api.tinify.com";
 
-    const RETRY_COUNT = 1;
-    const RETRY_DELAY = 500;
+    public const RETRY_COUNT = 1;
+    public const RETRY_DELAY = 500;
 
     /** @var array */
     private $options;
@@ -35,7 +35,7 @@ class Client
      *
      * @throws ClientException
      */
-    function __construct($key = 'crazy')
+    public function __construct($key = 'crazy')
     {
         $curl = curl_version();
 
@@ -67,8 +67,8 @@ class Client
     {
         $reflectionClientClass = new ReflectionClass(TinifyClient::class);
         return dirname(
-                $reflectionClientClass->getFileName()
-            ) . "/../data/cacert.pem";
+            $reflectionClientClass->getFileName()
+        ) . "/../data/cacert.pem";
     }
 
     private function userAgent(): string
@@ -91,7 +91,7 @@ class Client
      * @throws AccountException
      * @throws ServerException
      */
-    function request(string $method, string $url, $body = null): object
+    public function request(string $method, string $url, $body = null): object
     {
         $fileOver5Mb = is_string($body)
             ? mb_strlen($body, '8bit') > '5242880'
