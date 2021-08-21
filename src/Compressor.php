@@ -8,14 +8,12 @@ use Bearman\FileCompressor\Exception\EmptyKeyException;
 use Bearman\FileCompressor\Exception\EmptyNewFileException;
 use Bearman\FileCompressor\Exception\FileNotFoundException;
 use Bearman\FileCompressor\Exception\ModeNotSupportException;
-use Bearman\FileCompressor\Exception\ResponseNotFoundException;
-use Bearman\FileCompressor\Tinify\CrazyTinyPngClient;
+use Bearman\FileCompressor\Tinify\Client;
+use Exception;
 use Ilovepdf\Ilovepdf;
-use Tinify\AccountException;
 use Tinify\ClientException;
-use Tinify\ConnectionException;
-use Tinify\Exception;
-use Tinify\ServerException;
+use Tinify\Source;
+use Tinify\Tinify;
 
 class Compressor
 {
@@ -26,7 +24,7 @@ class Compressor
     public const COMPRESSION_LEVEL_RECOMMENDED = 'recommended';
     public const COMPRESSION_LEVEL_EXTREME = 'extreme';
 
-    /** @var CrazyTinyPngClient */
+    /** @var Client */
     public $tinyPngClient;
 
     /** @var Ilovepdf */
@@ -45,7 +43,10 @@ class Compressor
         string $tinyPngKey = 'crazy',
         string $iLovePDFPair = ''
     ) {
-        $this->tinyPngClient = new CrazyTinyPngClient($tinyPngKey);
+        $this->tinyPngClient = new Client($tinyPngKey);
+
+        Tinify::setKey($tinyPngKey);
+        Tinify::setClient($this->tinyPngClient);
 
         if (false === empty($iLovePDFPair)) {
             list($iLovePDFProjectId, $iLovePDFProjectKey) = explode(
@@ -65,16 +66,9 @@ class Compressor
      * @param string $mode
      *
      * @return string
-     * @throws AccountException
-     * @throws ClientException
-     * @throws ConnectionException
-     * @throws EmptyKeyException
      * @throws EmptyNewFileException
-     * @throws Exception
      * @throws FileNotFoundException
      * @throws ModeNotSupportException
-     * @throws ResponseNotFoundException
-     * @throws ServerException
      */
     public function compressionImage(
         string $file,
@@ -89,25 +83,19 @@ class Compressor
                 if (empty($newFile)) {
                     $newFile = $file;
                 }
-                $buffer = file_get_contents($file);
+                $source = Source::fromFile($file);
                 break;
             case self::MODE_URL:
                 if (empty($newFile)) {
                     throw new EmptyNewFileException();
                 }
-                $buffer = [
-                    'source' => [
-                        'url' => $file
-                    ]
-                ];
+                $source = Source::fromUrl($file);
                 break;
             default:
                 throw new ModeNotSupportException();
         }
 
-        $this->tinyPngClient->compression(
-            $buffer
-        )->toFile($newFile);
+        $source->toFile($newFile);
 
         return $newFile;
     }
@@ -119,7 +107,7 @@ class Compressor
      * @return string
      * @throws EmptyKeyException
      * @throws FileNotFoundException
-     * @throws \Exception
+     * @throws Exception
      */
     public function compressionPDF(
         string $file,

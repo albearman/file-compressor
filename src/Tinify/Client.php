@@ -5,26 +5,22 @@ declare(strict_types=1);
 namespace Bearman\FileCompressor\Tinify;
 
 use Bearman\FileCompressor\Exception\EmptyKeyException;
-use Bearman\FileCompressor\Exception\ResponseNotFoundException;
 use ReflectionClass;
 use Tinify\AccountException;
-use Tinify\Client;
+use Tinify\Client as TinifyClient;
 use Tinify\ClientException;
 use Tinify\ConnectionException;
 use Tinify\Exception;
 use Tinify\ServerException;
 use Tinify\Tinify;
 
-class CrazyTinyPngClient
+class Client
 {
     public const API_CRAZY_ENDPOINT = 'https://tinypng.com/web';
-    public const API_ENDPOINT = "https://api.tinify.com";
+    const API_ENDPOINT = "https://api.tinify.com";
 
-    public const RETRY_COUNT = 1;
-    public const RETRY_DELAY = 500;
-
-    /** @var object */
-    public $response;
+    const RETRY_COUNT = 1;
+    const RETRY_DELAY = 500;
 
     /** @var array */
     private $options;
@@ -32,17 +28,14 @@ class CrazyTinyPngClient
     /** @var string */
     private $key;
 
-    /** @var string */
-    private $caBundleKey;
-
     /**
-     * CrazyTinyPngClient constructor.
+     * Client constructor.
      *
      * @param string $key
      *
      * @throws ClientException
      */
-    public function __construct(string $key)
+    function __construct($key = 'crazy')
     {
         $curl = curl_version();
 
@@ -61,16 +54,21 @@ class CrazyTinyPngClient
 
         $this->key = $key;
 
-        $reflectionClientClass = new ReflectionClass(Client::class);
-        $this->caBundleKey = dirname(
-            $reflectionClientClass->getFileName()
-        );
-
-        $this->options = [
+        $this->options = array(
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HEADER         => true,
+            CURLOPT_CAINFO         => $this->caBundle(),
+            CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_USERAGENT      => $this->userAgent()
-        ];
+        );
+    }
+
+    private function caBundle(): string
+    {
+        $reflectionClientClass = new ReflectionClass(TinifyClient::class);
+        return dirname(
+                $reflectionClientClass->getFileName()
+            ) . "/../data/cacert.pem";
     }
 
     private function userAgent(): string
@@ -81,78 +79,33 @@ class CrazyTinyPngClient
     }
 
     /**
-     * @param string $body
+     * @param string            $method
+     * @param string            $url
+     * @param null|array|string $body
      *
-     * @return $this
-     * @throws AccountException
+     * @return object
      * @throws ClientException
      * @throws ConnectionException
      * @throws EmptyKeyException
      * @throws Exception
-     * @throws ServerException
-     */
-    public function compression(string $body): self
-    {
-        $url = '/shrink';
-
-        $fileOver5Mb = mb_strlen($body, '8bit') < '5242880';
-
-        if ($fileOver5Mb) {
-            $url = strtolower(substr($url, 0, 6)) == "https:"
-                ? $url
-                : self::API_CRAZY_ENDPOINT . $url;
-            unset(
-                $this->options[CURLOPT_USERPWD],
-                $this->options[CURLOPT_CAINFO],
-                $this->options[CURLOPT_SSL_VERIFYPEER]
-            );
-        } elseif ($this->key !== 'crazy') {
-            $url = strtolower(substr($url, 0, 6)) == "https:"
-                ? $url
-                : self::API_ENDPOINT . $url;
-
-            $options = [
-                CURLOPT_USERPWD        => "api:" . $this->key,
-                CURLOPT_CAINFO         => $this->caBundleKey,
-                CURLOPT_SSL_VERIFYPEER => true
-            ];
-
-            $this->options = array_merge($this->options, $options);
-        } else {
-            throw new EmptyKeyException('TinyPng');
-        }
-
-        $this->response = $this->request('post', $body, $url);
-
-        return $this;
-    }
-
-
-    /**
-     * @param string            $method
-     * @param string|array|null $body
-     * @param string            $url
-     *
-     * @return object
      * @throws AccountException
-     * @throws ClientException
-     * @throws ConnectionException
-     * @throws Exception
      * @throws ServerException
      */
-    public function request(
-        string $method,
-        $body = null,
-        string $url = '/shrink'
-    ): object {
+    function request(string $method, string $url, $body = null): object
+    {
+        $fileOver5Mb = is_string($body)
+            ? mb_strlen($body, '8bit') > '5242880'
+            : false;
+
+        $url = $this->prepareUrl($url, $fileOver5Mb);
+
         $header = [];
 
         if (is_array($body)) {
-            $body = json_encode($body);
-            array_push(
-                $header,
-                'Content-Type: application/json'
-            );
+            if (empty($body) === false) {
+                $body = json_encode($body);
+                array_push($header, "Content-Type: application/json");
+            }
         }
 
         for ($retries = self::RETRY_COUNT; $retries >= 0; $retries--) {
@@ -167,12 +120,13 @@ class CrazyTinyPngClient
                 );
             }
 
-            $header = array_merge($header, $this->options);
-
-            curl_setopt_array($request, $header);
             curl_setopt($request, CURLOPT_URL, $url);
             curl_setopt($request, CURLOPT_CUSTOMREQUEST, strtoupper($method));
+            curl_setopt_array($request, $this->options);
 
+            if (count($header) > 0) {
+                curl_setopt($request, CURLOPT_HTTPHEADER, $header);
+            }
 
             if (empty($body) === false) {
                 curl_setopt($request, CURLOPT_POSTFIELDS, $body);
@@ -182,18 +136,11 @@ class CrazyTinyPngClient
 
             if (is_string($response)) {
                 $status = curl_getinfo($request, CURLINFO_HTTP_CODE);
-                $headerSize = curl_getinfo(
-                    $request,
-                    CURLINFO_HEADER_SIZE
-                );
+                $headerSize = curl_getinfo($request, CURLINFO_HEADER_SIZE);
                 curl_close($request);
 
                 $headers = $this->parseHeaders(
-                    substr(
-                        $response,
-                        0,
-                        $headerSize
-                    )
+                    substr($response, 0, $headerSize)
                 );
 
                 $body = substr($response, $headerSize);
@@ -206,8 +153,8 @@ class CrazyTinyPngClient
 
                 if ($status >= 200 && $status <= 299) {
                     return (object)[
-                        'body'    => $body,
-                        'headers' => $headers
+                        "body"    => $body,
+                        "headers" => $headers
                     ];
                 }
 
@@ -254,62 +201,53 @@ class CrazyTinyPngClient
     }
 
     /**
+     * @param string $url
+     * @param bool   $bigFile
+     *
+     * @return string
+     * @throws EmptyKeyException
+     */
+    private function prepareUrl(string $url, bool $bigFile = false): string
+    {
+        if ($bigFile === false) {
+            $url = strtolower(substr($url, 0, 6)) == "https:"
+                ? $url
+                : self::API_CRAZY_ENDPOINT . $url;
+            unset($this->options[CURLOPT_USERPWD]);
+        } elseif ($this->key !== 'crazy') {
+            $url = strtolower(substr($url, 0, 6)) == "https:"
+                ? $url
+                : self::API_ENDPOINT . $url;
+
+            $this->options[CURLOPT_USERPWD] = "api:" . $this->key;
+        } else {
+            throw new EmptyKeyException('TinyPng');
+        }
+
+        return $url;
+    }
+
+    /**
      * @param string|array $headers
      *
      * @return array
      */
     protected function parseHeaders($headers): array
     {
-        if (is_array($headers) === false) {
+        if (!is_array($headers)) {
             $headers = explode("\r\n", $headers);
         }
 
-        $resources = [];
+        $output = [];
         foreach ($headers as $header) {
             if (empty($header)) {
                 continue;
             }
             $split = explode(":", $header, 2);
             if (count($split) === 2) {
-                $resources[strtolower($split[0])] = trim($split[1]);
+                $output[strtolower($split[0])] = trim($split[1]);
             }
         }
-        return $resources;
-    }
-
-    /**
-     * @param string $path
-     *
-     * @return false|int
-     * @throws AccountException
-     * @throws ClientException
-     * @throws ConnectionException
-     * @throws Exception
-     * @throws ResponseNotFoundException
-     * @throws ServerException
-     */
-    public function toFile(string $path)
-    {
-        return file_put_contents($path, $this->toBuffer());
-    }
-
-    /**
-     * @return string
-     * @throws AccountException
-     * @throws ClientException
-     * @throws ConnectionException
-     * @throws Exception
-     * @throws ResponseNotFoundException
-     * @throws ServerException
-     */
-    public function toBuffer(): string
-    {
-        if (empty($this->response)) {
-            throw new ResponseNotFoundException();
-        }
-
-        $response = $this->request($this->response->header['location']);
-
-        return $response->data;
+        return $output;
     }
 }
