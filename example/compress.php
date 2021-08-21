@@ -25,30 +25,42 @@ function jsonRequest(array $data, $status = 200)
     ];
 
     header('Content-Type: application/json');
-    header($messages[$status], true, $status);
+    header('HTTP/1.1 ' . $status . ' ' . $messages[$status]);
 
     exit(json_encode($data));
 }
 
+$iLovePDFKey = empty($iLovePDFProjectId) || empty($iLovePDFProjectKey)
+    ? ''
+    : $iLovePDFProjectId . ':' . $iLovePDFProjectKey;
+
 $fileCompressor = new Compressor(
     $tinyPngKey,
-    $iLovePDFProjectId . ':' . $iLovePDFProjectKey
+    $iLovePDFKey
 );
 
-if (empty($_FILES['file']) || !is_uploaded_file($_FILES['file']['name'])) {
+if (empty($_FILES['file']) || !is_uploaded_file($_FILES['file']['tmp_name'])) {
     jsonRequest(['data' => 'File not upload'], 500);
 }
 
 $uploadDir = __DIR__ . '/uploads/';
 $fileName = basename($_FILES['file']['name']);
+$newFileName = pathinfo($fileName, PATHINFO_FILENAME)
+    . '_compressed.' . pathinfo($fileName, PATHINFO_EXTENSION);
 
 if (!move_uploaded_file($_FILES['file']['tmp_name'], $uploadDir . $fileName)) {
     jsonRequest(['data' => 'Upload file not moved'], 500);
 }
 
 $beforeFileSize = filesize($uploadDir . $fileName);
-$fileCompressor->compressionImage($uploadDir . $fileName);
-$afterFileSize = filesize($uploadDir . $fileName);
+$fileCompressor->compressionImage(
+    $uploadDir . $fileName,
+    $uploadDir . $newFileName
+);
+$afterFileSize = filesize($uploadDir . $newFileName);;
+
+unlink($uploadDir . $fileName);
+unlink($uploadDir . $newFileName);
 
 jsonRequest(
     [

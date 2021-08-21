@@ -6,9 +6,16 @@ form.addEventListener('submit', function (e) {
   
   let oReq = new XMLHttpRequest();
   oReq.open("POST", "compress.php", true);
+  oReq.responseType = 'json';
   oReq.onload = function () {
     if (oReq.status === 200) {
-      oOutput.innerHTML = "Uploaded!";
+      let before = Math.round(oReq.response.before / 1024);
+      let after = Math.round(oReq.response.after / 1024);
+      let compressProc = Math.round(100 - (oReq.response.after * 100 / oReq.response.before));
+      
+      oOutput.innerHTML = `Upload file size: <strong>${before}kb</strong> <br> `
+        + `Compressed file size: <strong>${after}kb</strong> <br> `
+        + `Compression percentage: <strong>${compressProc}%</strong>`
     } else {
       oOutput.innerHTML = "Error " + oReq.status + " occurred when trying to upload your file.<br \/>";
     }
