@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c3ea66dabd85d2b6e9eb96aeabd7c44b",
+    "content-hash": "635fa27f329783be6ae2bce7c7e90975",
     "packages": [
         {
             "name": "ilovepdf/ilovepdf-php",
@@ -1072,16 +1072,16 @@
         },
         {
             "name": "phpstan/phpstan",
-            "version": "0.12.95",
+            "version": "0.12.96",
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpstan/phpstan.git",
-                "reference": "4ffddfe86e85dcc494a47e5f3dcfd1a2dccdce58"
+                "reference": "a98bdc51318f20fcae8c953d266f81a70254917f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/4ffddfe86e85dcc494a47e5f3dcfd1a2dccdce58",
-                "reference": "4ffddfe86e85dcc494a47e5f3dcfd1a2dccdce58",
+                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/a98bdc51318f20fcae8c953d266f81a70254917f",
+                "reference": "a98bdc51318f20fcae8c953d266f81a70254917f",
                 "shasum": ""
             },
             "require": {
@@ -1112,7 +1112,7 @@
             "description": "PHPStan - PHP Static Analysis Tool",
             "support": {
                 "issues": "https://github.com/phpstan/phpstan/issues",
-                "source": "https://github.com/phpstan/phpstan/tree/0.12.95"
+                "source": "https://github.com/phpstan/phpstan/tree/0.12.96"
             },
             "funding": [
                 {
@@ -1132,7 +1132,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2021-08-20T12:53:41+00:00"
+            "time": "2021-08-21T11:55:13+00:00"
         },
         {
             "name": "phpunit/php-code-coverage",
@@ -4203,7 +4203,8 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": "^7.3"
+        "php": ">=7.3",
+        "ext-curl": "*"
     },
     "platform-dev": [],
     "plugin-api-version": "2.1.0"
